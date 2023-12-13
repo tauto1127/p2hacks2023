@@ -3,8 +3,11 @@ import 'package:firebase_tutorial/model/post.dart';
 import 'package:firebase_tutorial/routes.dart';
 import 'package:firebase_tutorial/view_model/multi/posts_repository.dart';
 import 'package:firebase_tutorial/view_model/multi/user_view_model.dart';
+import 'package:firebase_tutorial/view_model/multi/users_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'model/user.dart';
 
 class FireStore extends StatefulWidget {
   const FireStore({super.key});
@@ -16,6 +19,7 @@ class FireStore extends StatefulWidget {
 class _FireStoreState extends State<FireStore> {
   Future<QuerySnapshot<Object?>>? get;
   PostsRepository postsRepository = PostsRepository();
+  UsersRepository usersRepository = UsersRepository();
   @override
   Widget build(BuildContext context) {
     CollectionReference tests = FirebaseFirestore.instance.collection('tests');
@@ -34,73 +38,100 @@ class _FireStoreState extends State<FireStore> {
         .catchError((error) => debugPrint("エラーが起きた${error.toString()}"));
     }
     
-    return Column(
-      children: [
-        TextButton(
-          onPressed: () => addTest(),
-          child: const Text("add test"),
-        ),
-        TextButton(
-          onPressed: () async => {
-            postsRepository.getAllPosts(),
-          },
-          child: const Text("みる"),
-        ),
-        // ignore: unnecessary_null_comparison
-        if(getFromFirestore != null) Text(getFromFirestore),
-        Consumer(
-          builder: (context, ref, child) {
-            // ignore: unnecessary_null_comparison
-            if(ref.watch(userViewModelProvider).nickname != null) {
-            return TextButton(
-              child: const Text("add画面に進む"),
-              onPressed: () => router.push('post/add'),
-            );
-            }else {
-              return const Text("ログインしてください");
-            }
-          }
-        ),
-        TextButton(
-          onPressed: () => router.pop(),
-          child: const Text("戻る"),
-        ),
-        Material(
-          child: TextField(
-            decoration: const InputDecoration(label: Text("ポストidを入力"),),
-            onChanged: ((value) => formId = value),
+    return Scaffold(
+      appBar: AppBar(),
+      body: Column(
+        children: [
+          TextButton(
+            onPressed: () => addTest(),
+            child: const Text("add test"),
           ),
-        ),
-        if(formId != null) TextButton(child: const Text("ポストを見る"),
-        onPressed: () => postsRepository.getPost(formId!).then((value) => setState(() => debugPrint(value.description))),
-        ),
-        // ignore: unnecessary_null_comparison
-        if(idFetched != null) Text(idFetched.toString()),
-        Material(
-          child: TextField(
-            decoration: const InputDecoration(label: Text("自己紹介")),
-            onChanged: (value) => introduction = value,
+          TextButton(
+            onPressed: () async => {
+              postsRepository.getAllPosts(),
+            },
+            child: const Text("みる"),
           ),
-        ),
-        Consumer(
-          builder: (context, ref, _) {
-            return TextButton(
-              onPressed: () {
-                ref.read(userViewModelProvider.notifier).changeIntroduction(ref, introduction);
-              }, child:const Text("自己紹介を変更"));
-          }
-        ) ,
-
-        
-        /*
-        if(get != null) FutureBuilder(
-          builder: (context,AsyncSnapshot snapshot){
-            if(snapshot.connectionState == ConnectionState.done) {
-              Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
+          // ignore: unnecessary_null_comparison
+          if(getFromFirestore != null) Text(getFromFirestore),
+          Consumer(
+            builder: (context, ref, child) {
+              // ignore: unnecessary_null_comparison
+              if(ref.watch(userViewModelProvider).nickname != null) {
+              return TextButton(
+                child: const Text("add画面に進む"),
+                onPressed: () => router.push('post/add'),
+              );
+              }else {
+                return const Text("ログインしてください");
+              }
             }
-          }
-        ),*/
-      ],
+          ),
+          TextButton(
+            onPressed: () => router.pop(),
+            child: const Text("戻る"),
+          ),
+          Material(
+            child: TextField(
+              decoration: const InputDecoration(label: Text("ポストidを入力"),),
+              onChanged: ((value) => formId = value),
+            ),
+          ),
+          if(formId != null) TextButton(child: const Text("ポストを見る"),
+          onPressed: () => postsRepository.getPost(formId!).then((value) => setState(() => debugPrint(value.description))),
+          ),
+          // ignore: unnecessary_null_comparison
+          if(idFetched != null) Text(idFetched.toString()),
+          Material(
+            child: TextField(
+              decoration: const InputDecoration(label: Text("自己紹介")),
+              onChanged: (value) => introduction = value,
+            ),
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              return TextButton(
+                onPressed: () {
+                  ref.read(userViewModelProvider.notifier).changeIntroduction(ref, introduction);
+                }, child:const Text("自己紹介を変更"));
+            }
+          ) ,
+          TextButton(
+            onPressed: () async {
+              User user = await usersRepository.getUserFromMailaddress(formId!);
+              debugPrint(user.nickname);
+            },
+            child: const Text("メールアドレスからユーザー取得"),
+          ),
+          Consumer(
+            builder: (context,ref,_) {
+              return TextButton(
+                onPressed: () async {
+                  postsRepository.addIine(formId!, ref.watch(userViewModelProvider).email);
+                },
+                child: Text("いいね(フォームにいいね先ポストidを入れて"),
+              );
+            }
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              return TextButton(onPressed: () async {
+                postsRepository.removeIine(formId!, ref.watch(userViewModelProvider).email);
+              }, child: Text("いいね消す"));
+            },
+          )
+    
+          
+          /*
+          if(get != null) FutureBuilder(
+            builder: (context,AsyncSnapshot snapshot){
+              if(snapshot.connectionState == ConnectionState.done) {
+                Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
+              }
+            }
+          ),*/
+        ],
+      ),
     );
   }
 }
