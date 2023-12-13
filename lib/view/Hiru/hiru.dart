@@ -21,6 +21,7 @@ class Hiru extends ConsumerWidget {
                   Text(data.posts[index].nickname),
                   Image.network(data.posts[index].imageUrl.toString()),
                   Text(data.posts[index].description),
+                  if (data.posts[index].favoriteArray.isNotEmpty) Text(data.posts[index].favoriteArray[0].toString())
                 ],
               );
             },
